@@ -4,89 +4,80 @@ import { supabase } from '../services/supabase';
 const AuthContext = createContext(null);
 
 const SUPABASE_ENABLED = Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
+const ADMIN_EMAIL = 'samlee';
+const ADMIN_PASSWORD = '123456';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Check for existing session in localStorage
+    const saved = localStorage.getItem('imdb_admin');
+    if (saved) {
+      try { setUser(JSON.parse(saved)); } catch { /* ignore */ }
+    }
+
+    // Also check Supabase session if enabled
     if (SUPABASE_ENABLED) {
-      // Check Supabase session
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user) {
-          setUser({
+          const u = {
             id: session.user.id,
             email: session.user.email,
-            displayName: session.user.user_metadata?.display_name || session.user.email?.split('@')[0],
-          });
+            displayName: 'samlee',
+          };
+          setUser(u);
+          localStorage.setItem('imdb_admin', JSON.stringify(u));
         }
         setLoading(false);
-      });
-
-      // Listen for auth changes
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session?.user) {
-          setUser({
-            id: session.user.id,
-            email: session.user.email,
-            displayName: session.user.user_metadata?.display_name || session.user.email?.split('@')[0],
-          });
-        } else {
-          setUser(null);
-        }
-      });
-
-      return () => subscription.unsubscribe();
+      }).catch(() => setLoading(false));
     } else {
-      // Fallback to localStorage mock
-      const saved = localStorage.getItem('imdb_user');
-      if (saved) {
-        try { setUser(JSON.parse(saved)); } catch { /* ignore */ }
-      }
       setLoading(false);
     }
   }, []);
 
-  const login = async (email, password) => {
-    if (SUPABASE_ENABLED) {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
-      return data;
+  const login = async (username, password) => {
+    // Check hardcoded admin credentials
+    if (username === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+      // Try Supabase auth too (don't block on failure)
+      if (SUPABASE_ENABLED) {
+        supabase.auth.signInWithPassword({ email: 'admin@imdb.com', password: ADMIN_PASSWORD })
+          .catch(() => {}); // ignore Supabase error, admin still logs in
+      }
+      const userData = { email: 'samlee', displayName: 'samlee', id: 1 };
+      setUser(userData);
+      localStorage.setItem('imdb_admin', JSON.stringify(userData));
+      return userData;
     }
-    // Mock fallback
-    const userData = { email, displayName: email.split('@')[0], id: Date.now() };
-    setUser(userData);
-    localStorage.setItem('imdb_user', JSON.stringify(userData));
-    return true;
-  };
 
-  const signup = async (email, password, displayName) => {
+    // Try Supabase for other users
     if (SUPABASE_ENABLED) {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { display_name: displayName } },
-      });
+      const { data, error } = await supabase.auth.signInWithPassword({ email: username, password });
       if (error) throw error;
-      return data;
+      const u = {
+        id: data.user.id,
+        email: data.user.email,
+        displayName: data.user.user_metadata?.display_name || 'User',
+      };
+      setUser(u);
+      localStorage.setItem('imdb_admin', JSON.stringify(u));
+      return u;
     }
-    // Mock fallback
-    const userData = { email, displayName, id: Date.now() };
-    setUser(userData);
-    localStorage.setItem('imdb_user', JSON.stringify(userData));
-    return true;
+
+    throw new Error('Invalid credentials. Use samlee / 123456');
   };
 
   const logout = async () => {
     if (SUPABASE_ENABLED) {
-      await supabase.auth.signOut();
+      supabase.auth.signOut().catch(() => {});
     }
     setUser(null);
-    localStorage.removeItem('imdb_user');
+    localStorage.removeItem('imdb_admin');
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

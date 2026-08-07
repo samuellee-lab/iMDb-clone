@@ -14,7 +14,6 @@ import Top10Page from './pages/Top10Page';
 import GenreBrowsePage from './pages/GenreBrowsePage';
 import NewsPage from './pages/NewsPage';
 import SignInPage from './pages/SignInPage';
-import SignUpPage from './pages/SignUpPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 export default function App() {
@@ -35,7 +34,6 @@ export default function App() {
                 <Route path="/genre/:genre" element={<GenreBrowsePage />} />
                 <Route path="/news" element={<NewsPage />} />
                 <Route path="/signin" element={<SignInPage />} />
-                <Route path="/signup" element={<SignUpPage />} />
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
