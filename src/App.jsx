@@ -8,6 +8,7 @@ import HomePage from './pages/HomePage';
 import MovieDetailPage from './pages/MovieDetailPage';
 import PersonDetailPage from './pages/PersonDetailPage';
 import SearchResultsPage from './pages/SearchResultsPage';
+import AdminPage from './pages/AdminPage';
 import WatchlistPage from './pages/WatchlistPage';
 import Top10Page from './pages/Top10Page';
 import GenreBrowsePage from './pages/GenreBrowsePage';
@@ -35,6 +36,7 @@ export default function App() {
                 <Route path="/news" element={<NewsPage />} />
                 <Route path="/signin" element={<SignInPage />} />
                 <Route path="/signup" element={<SignUpPage />} />
+                <Route path="/admin" element={<AdminPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </main>

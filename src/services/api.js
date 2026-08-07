@@ -1,101 +1,148 @@
-import movies from '../data/movies';
-import people from '../data/people';
-import news from '../data/news';
-import { genres } from '../data/genres';
+import { supabase } from './supabase';
 
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-const randomDelay = () => delay(300 + Math.random() * 500);
+// ============ MOVIES (from Supabase) ============
 
 export async function fetchMovies({ genre, category, limit } = {}) {
-  await randomDelay();
-  let results = [...movies];
-  if (genre) results = results.filter(m => m.genres.includes(genre));
-  if (category === 'series') results = results.filter(m => m.isSeries);
-  if (category === 'movies') results = results.filter(m => !m.isSeries);
-  if (limit) results = results.slice(0, limit);
-  return results;
+  let query = supabase.from('movies').select('*').order('created_at', { ascending: false });
+  if (genre) query = query.contains('genres', [genre]);
+  if (category === 'series') query = query.eq('is_series', true);
+  if (category === 'movies') query = query.eq('is_series', false);
+  if (limit) query = query.limit(limit);
+  const { data, error } = await query;
+  if (error) { console.error('fetchMovies error:', error); return []; }
+  return data || [];
 }
 
 export async function fetchMovieById(id) {
-  await randomDelay();
-  return movies.find(m => m.id === Number(id)) || null;
+  const { data, error } = await supabase.from('movies').select('*').eq('id', id).single();
+  if (error) { console.error('fetchMovieById error:', error); return null; }
+  return data;
 }
 
 export async function fetchFeaturedMovie() {
-  await randomDelay();
-  return movies.find(m => m.isFeatured) || movies[0];
+  const { data } = await supabase.from('movies').select('*').eq('is_featured', true).limit(1).single();
+  if (!data) {
+    const { data: fallback } = await supabase.from('movies').select('*').limit(1).single();
+    return fallback;
+  }
+  return data;
 }
 
 export async function fetchTop10() {
-  await randomDelay();
-  return [...movies].sort((a, b) => b.rating - a.rating).slice(0, 10);
+  const { data } = await supabase.from('movies').select('*').order('rating', { ascending: false }).limit(10);
+  return data || [];
 }
 
 export async function fetchFanFavorites() {
-  await randomDelay();
-  return [...movies].sort((a, b) => b.rating - a.rating).slice(0, 6);
+  const { data } = await supabase.from('movies').select('*').order('rating', { ascending: false }).limit(6);
+  return data || [];
 }
 
 export async function fetchBoxOffice() {
-  await randomDelay();
-  return [...movies].sort((a, b) => b.votes - a.votes).slice(0, 5);
+  const { data } = await supabase.from('movies').select('*').order('votes', { ascending: false }).limit(5);
+  return data || [];
 }
 
 export async function fetchComingSoon() {
-  await randomDelay();
-  return movies.filter(m => m.year >= 2026).slice(0, 6).map(m => ({
-    ...m,
-    releaseDate: `Aug ${15 + Math.floor(Math.random() * 30)}`,
-  }));
+  const { data } = await supabase.from('movies').select('*').gte('year', 2026).limit(6);
+  return (data || []).map(m => ({ ...m, releaseDate: `Aug ${15 + Math.floor(Math.random() * 30)}` }));
 }
 
-export async function fetchPeople() {
-  await randomDelay();
-  return people;
+export async function searchMovies(query) {
+  const q = `%${query}%`;
+  const { data } = await supabase.from('movies').select('*').or(`title.ilike.${q},director.ilike.${q}`);
+  return data || [];
 }
+
+// ============ CMS: Admin CRUD ============
+
+export async function createMovie(movie) {
+  const { data, error } = await supabase.from('movies').insert(movie).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateMovie(id, updates) {
+  const { data, error } = await supabase.from('movies').update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteMovie(id) {
+  const { error } = await supabase.from('movies').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// ============ STORAGE ============
+
+export async function uploadMovieImage(file, folder = 'posters') {
+  const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+  const { data, error } = await supabase.storage.from('movie-images').upload(`${folder}/${fileName}`, file, {
+    cacheControl: '3600',
+    upsert: false,
+  });
+  if (error) throw error;
+  const { data: urlData } = supabase.storage.from('movie-images').getPublicUrl(`${folder}/${fileName}`);
+  return urlData.publicUrl;
+}
+
+// ============ PEOPLE (mock fallback) ============
+
+import people from '../data/people';
 
 export async function fetchPersonById(id) {
-  await randomDelay();
   return people.find(p => p.id === Number(id)) || null;
 }
 
 export async function fetchTrendingPeople() {
-  await randomDelay();
   return people.slice(0, 10);
 }
 
 export async function fetchBornToday() {
-  await randomDelay();
   return people.filter(p => p.birthDate.includes('August 7')).slice(0, 8);
 }
 
-export async function fetchNews({ limit } = {}) {
-  await randomDelay();
+// ============ NEWS (mock fallback) ============
+
+import news from '../data/news';
+
+export async function fetchNewsData({ limit } = {}) {
   return limit ? news.slice(0, limit) : news;
 }
 
-export async function fetchGenres() {
-  await randomDelay();
-  return genres;
+// ============ GENRES ============
+
+import { genres } from '../data/genres';
+export async function fetchGenres() { return genres; }
+
+// ============ WATCHLIST (Supabase) ============
+
+export async function fetchWatchlist(userId) {
+  const { data } = await supabase.from('watchlist').select('movie_id, movies(*)').eq('user_id', userId);
+  return (data || []).map(row => row.movies).filter(Boolean);
 }
 
-export async function searchMovies(query) {
-  await randomDelay();
-  const q = query.toLowerCase();
-  return movies.filter(m =>
-    m.title.toLowerCase().includes(q) ||
-    m.genres.some(g => g.toLowerCase().includes(q)) ||
-    (m.director && m.director.toLowerCase().includes(q)) ||
-    m.cast.some(c => c.name.toLowerCase().includes(q))
-  );
+export async function addToWatchlistDB(userId, movieId) {
+  const { error } = await supabase.from('watchlist').insert({ user_id: userId, movie_id: movieId });
+  if (error && error.code !== '23505') throw error;
 }
 
-export async function searchPeople(query) {
-  await randomDelay();
-  const q = query.toLowerCase();
-  return people.filter(p =>
-    p.name.toLowerCase().includes(q) ||
-    p.bio.toLowerCase().includes(q)
+export async function removeFromWatchlistDB(userId, movieId) {
+  const { error } = await supabase.from('watchlist').delete().eq('user_id', userId).eq('movie_id', movieId);
+  if (error) throw error;
+}
+
+// ============ RECENTLY VIEWED (Supabase) ============
+
+export async function fetchRecentlyViewed(userId) {
+  const { data } = await supabase.from('recently_viewed').select('movie_id, movies(*)').eq('user_id', userId).order('viewed_at', { ascending: false }).limit(20);
+  return (data || []).map(row => row.movies).filter(Boolean);
+}
+
+export async function addRecentlyViewed(userId, movieId) {
+  const { error } = await supabase.from('recently_viewed').upsert(
+    { user_id: userId, movie_id: movieId, viewed_at: new Date().toISOString() },
+    { onConflict: 'user_id,movie_id' }
   );
+  if (error) console.error('addRecentlyViewed:', error);
 }

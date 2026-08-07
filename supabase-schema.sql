@@ -1,23 +1,60 @@
--- iMDb Clone Database Schema
+-- iMDb CMS: Full schema with movies table + storage
 -- Run this in Supabase SQL Editor to set up your database
 
--- Watchlist table
+-- 1. Drop old tables if re-creating
+DROP TABLE IF EXISTS recently_viewed CASCADE;
+DROP TABLE IF EXISTS ratings CASCADE;
+DROP TABLE IF EXISTS watchlist CASCADE;
+
+-- 2. Movies table (replaces mock data)
+CREATE TABLE IF NOT EXISTS movies (
+  id BIGSERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  year INTEGER,
+  runtime TEXT,
+  genres TEXT[] DEFAULT '{}',
+  rating REAL DEFAULT 0,
+  votes INTEGER DEFAULT 0,
+  plot TEXT DEFAULT '',
+  poster_url TEXT DEFAULT '',
+  backdrop_url TEXT DEFAULT '',
+  director TEXT DEFAULT '',
+  writers TEXT[] DEFAULT '{}',
+  cast JSONB DEFAULT '[]',
+  trailer TEXT DEFAULT '',
+  is_featured BOOLEAN DEFAULT false,
+  is_series BOOLEAN DEFAULT false,
+  streaming_on TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 3. Enable RLS
+ALTER TABLE movies ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can view movies" ON movies
+  FOR SELECT USING (true);
+
+CREATE POLICY "Authenticated can insert" ON movies
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+CREATE POLICY "Authenticated can update" ON movies
+  FOR UPDATE USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Authenticated can delete" ON movies
+  FOR DELETE USING (auth.role() = 'authenticated');
+
+-- 4. Watchlist table
 CREATE TABLE IF NOT EXISTS watchlist (
   id BIGSERIAL PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  movie_id INTEGER NOT NULL,
-  title TEXT NOT NULL,
-  year INTEGER,
-  poster TEXT,
-  rating REAL,
+  movie_id BIGINT NOT NULL REFERENCES movies(id) ON DELETE CASCADE,
   added_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id, movie_id)
 );
 
--- Enable RLS
 ALTER TABLE watchlist ENABLE ROW LEVEL SECURITY;
 
--- Policies: users can only see/edit their own watchlist
 CREATE POLICY "Users can view own watchlist" ON watchlist
   FOR SELECT USING (auth.uid() = user_id);
 
@@ -27,35 +64,11 @@ CREATE POLICY "Users can insert own watchlist" ON watchlist
 CREATE POLICY "Users can delete own watchlist" ON watchlist
   FOR DELETE USING (auth.uid() = user_id);
 
--- Ratings table
-CREATE TABLE IF NOT EXISTS ratings (
-  id BIGSERIAL PRIMARY KEY,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  movie_id INTEGER NOT NULL,
-  score INTEGER CHECK (score >= 1 AND score <= 10),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(user_id, movie_id)
-);
-
-ALTER TABLE ratings ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view own ratings" ON ratings
-  FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert own ratings" ON ratings
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own ratings" ON ratings
-  FOR UPDATE USING (auth.uid() = user_id);
-
--- Recently viewed table
+-- 5. Recently viewed table
 CREATE TABLE IF NOT EXISTS recently_viewed (
   id BIGSERIAL PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  item_id INTEGER NOT NULL,
-  item_type TEXT NOT NULL CHECK (item_type IN ('movie', 'person')),
-  title TEXT NOT NULL,
-  poster TEXT,
+  movie_id BIGINT NOT NULL REFERENCES movies(id) ON DELETE CASCADE,
   viewed_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -67,7 +80,8 @@ CREATE POLICY "Users can view own recently viewed" ON recently_viewed
 CREATE POLICY "Users can insert own recently viewed" ON recently_viewed
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- Create indexes
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_movies_featured ON movies(is_featured) WHERE is_featured = true;
+CREATE INDEX IF NOT EXISTS idx_movies_rating ON movies(rating DESC);
 CREATE INDEX IF NOT EXISTS idx_watchlist_user ON watchlist(user_id);
-CREATE INDEX IF NOT EXISTS idx_ratings_user ON ratings(user_id);
 CREATE INDEX IF NOT EXISTS idx_recently_viewed_user ON recently_viewed(user_id);

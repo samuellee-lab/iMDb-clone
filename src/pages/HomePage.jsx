@@ -17,7 +17,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   fetchFeaturedMovie, fetchMovies, fetchTop10, fetchFanFavorites,
   fetchBoxOffice, fetchComingSoon, fetchTrendingPeople, fetchBornToday,
-  fetchNews,
+  fetchNewsData,
 } from '../services/api';
 
 export default function HomePage() {
@@ -54,7 +54,7 @@ export default function HomePage() {
         fetchComingSoon(),
         fetchTrendingPeople(),
         fetchBornToday(),
-        fetchNews({ limit: 4 }),
+        fetchNewsData({ limit: 4 }),
         fetchMovies({ limit: 8 }),
         fetchMovies({ limit: 8 }),
       ]);
