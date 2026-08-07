@@ -1,25 +1,34 @@
 import { useState } from 'react';
-import { Link, useNavigate, Navigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function SignInPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/';
 
-  if (isAuthenticated) return <Navigate to="/" replace />;
+  if (isAuthenticated) return <Navigate to={redirectTo} replace />;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     if (!email.trim() || !password.trim()) {
       setError('Please fill in all fields.');
       return;
     }
-    login(email, password);
-    navigate('/');
+    setLoading(true);
+    try {
+      await login(email, password);
+      navigate(redirectTo, { replace: true });
+    } catch (err) {
+      setError(err?.message || 'Sign in failed. Check your credentials.');
+    }
+    setLoading(false);
   };
 
   return (
@@ -55,15 +64,15 @@ export default function SignInPage() {
                 className="w-full bg-imdb-dark border border-imdb-border text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-imdb-gold transition-colors text-sm"
               />
             </div>
-            <button type="submit" className="imdb-btn w-full py-2.5">
-              Sign In
+            <button type="submit" disabled={loading} className="imdb-btn w-full py-2.5 disabled:opacity-50">
+              {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-imdb-muted">
               Don't have an account?{' '}
-              <Link to="/signup" className="text-imdb-gold hover:underline">
+              <Link to={`/signup${redirectTo !== '/' ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`} className="text-imdb-gold hover:underline">
                 Create one
               </Link>
             </p>

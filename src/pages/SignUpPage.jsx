@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate, Navigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function SignUpPage() {
@@ -8,12 +8,15 @@ export default function SignUpPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const { signup, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/';
 
-  if (isAuthenticated) return <Navigate to="/" replace />;
+  if (isAuthenticated) return <Navigate to={redirectTo} replace />;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     if (!displayName.trim() || !email.trim() || !password.trim()) {
@@ -28,8 +31,14 @@ export default function SignUpPage() {
       setError('Password must be at least 6 characters.');
       return;
     }
-    signup(email, password, displayName);
-    navigate('/');
+    setLoading(true);
+    try {
+      await signup(email, password, displayName);
+      navigate(redirectTo, { replace: true });
+    } catch (err) {
+      setError(err?.message || 'Sign up failed. Please try again.');
+    }
+    setLoading(false);
   };
 
   return (
@@ -85,15 +94,15 @@ export default function SignUpPage() {
                 className="w-full bg-imdb-dark border border-imdb-border text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-imdb-gold transition-colors text-sm"
               />
             </div>
-            <button type="submit" className="imdb-btn w-full py-2.5">
-              Create Account
+            <button type="submit" disabled={loading} className="imdb-btn w-full py-2.5 disabled:opacity-50">
+              {loading ? 'Creating...' : 'Create Account'}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-imdb-muted">
               Already have an account?{' '}
-              <Link to="/signin" className="text-imdb-gold hover:underline">
+              <Link to={`/signin${redirectTo !== '/' ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`} className="text-imdb-gold hover:underline">
                 Sign in
               </Link>
             </p>

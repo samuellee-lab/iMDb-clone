@@ -10,7 +10,7 @@ export default function WatchlistPage() {
   const { isAuthenticated } = useAuth();
 
   if (!isAuthenticated) {
-    return <Navigate to="/signin" replace />;
+    return <Navigate to="/signin?redirect=/watchlist" replace />;
   }
 
   return (

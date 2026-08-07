@@ -131,7 +131,7 @@ export default function AdminPage() {
   }
 
   if (authLoading) return <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-2 border-imdb-gold border-t-transparent rounded-full" /></div>;
-  if (!isAuthenticated) return <Navigate to="/signin" replace />;
+  if (!isAuthenticated) return <Navigate to="/signin?redirect=/admin" replace />;
 
   return (
     <div className="max-w-[1440px] mx-auto px-4 lg:px-8 py-8">
