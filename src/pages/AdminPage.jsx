@@ -102,7 +102,7 @@ export default function AdminPage() {
         votes: Number(form.votes),
         genres: form.genres.split(',').map(g => g.trim()).filter(Boolean),
         writers: form.writers.split(',').map(w => w.trim()).filter(Boolean),
-        cast: editing?.cast || [],
+        cast_data: editing?.cast_data || [],
         poster_url,
         backdrop_url,
       };

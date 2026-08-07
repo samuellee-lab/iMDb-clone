@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS movies (
   backdrop_url TEXT DEFAULT '',
   director TEXT DEFAULT '',
   writers TEXT[] DEFAULT '{}',
-  cast JSONB DEFAULT '[]',
+  cast_data JSONB DEFAULT '[]',
   trailer TEXT DEFAULT '',
   is_featured BOOLEAN DEFAULT false,
   is_series BOOLEAN DEFAULT false,
