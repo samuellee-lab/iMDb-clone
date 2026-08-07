@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-imdb-dark text-white font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #121212;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+}
+
+@layer components {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .imdb-btn {
+    @apply bg-imdb-gold text-black font-bold px-6 py-2 rounded-full 
+           hover:bg-yellow-400 transition-colors duration-200 
+           text-sm tracking-wide;
+  }
+
+  .imdb-btn-outline {
+    @apply border border-gray-500 text-white px-4 py-1.5 rounded-full 
+           hover:bg-imdb-hover transition-colors duration-200 text-sm;
+  }
+
+  .imdb-link {
+    @apply text-imdb-muted hover:text-white transition-colors duration-200 
+           text-sm cursor-pointer;
+  }
+
+  .section-padding {
+    @apply px-4 md:px-8 lg:px-12;
+  }
+}
