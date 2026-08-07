@@ -102,6 +102,14 @@ export async function fetchBornToday() {
   return people.filter(p => p.birthDate.includes('August 7')).slice(0, 8);
 }
 
+export async function searchPeople(query) {
+  const q = query.toLowerCase();
+  return people.filter(p =>
+    p.name.toLowerCase().includes(q) ||
+    p.bio.toLowerCase().includes(q)
+  );
+}
+
 // ============ NEWS (mock fallback) ============
 
 import news from '../data/news';

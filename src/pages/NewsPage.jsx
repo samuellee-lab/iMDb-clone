@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import NewsCard from '../components/NewsCard';
 import SectionHeader from '../components/SectionHeader';
-import { fetchNews } from '../services/api';
+import { fetchNewsData } from '../services/api';
 
 export default function NewsPage() {
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchNews().then(data => { setNews(data); setLoading(false); });
+    fetchNewsData().then(data => { setNews(data); setLoading(false); });
   }, []);
 
   return (
